@@ -1,0 +1,22 @@
+{
+  "name": "file-upload",
+  "version": "1.0.0",
+  "description": "Simple Node.js server for upload files",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index"
+  },
+  "author": "Plínio Naves <pliniopjn@hotmail.com>",
+  "license": "MIT",
+  "dependencies": {
+    "formidable": "^1.1.1",
+    "mime": "^1.3.6"
+  },
+  "engines":{
+    "node": "6.11.0"
+  },
+  "now": {
+    "name": "file-upload",
+    "alias": "node-file-upload2"
+  }
+}
