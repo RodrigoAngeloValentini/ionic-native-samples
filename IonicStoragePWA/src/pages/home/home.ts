@@ -1,29 +1,35 @@
 import { Component } from '@angular/core';
-import { NavController, Loading, LoadingController, ItemSliding, AlertOptions, AlertController } from 'ionic-angular';
+import {
+  NavController,
+  Loading,
+  LoadingController,
+  ItemSliding,
+  AlertOptions,
+  AlertController,
+} from 'ionic-angular';
+import 'rxjs/add/operator/map';
 
 import { Task } from './../../models/task.model';
 import { TaskService } from './../../providers/task/task.service';
 
 @Component({
   selector: 'page-home',
-  templateUrl: 'home.html'
+  templateUrl: 'home.html',
 })
 export class HomePage {
-
   tasks: Task[] = [];
 
   constructor(
     public alertCtrl: AlertController,
     public loadingCtrl: LoadingController,
     public navCtrl: NavController,
-    public taskService: TaskService
+    public taskService: TaskService,
   ) {}
 
   ionViewDidLoad() {
-    this.taskService.getAll(true)
-      .then((tasks: Task[]) => {
-        this.tasks = tasks;
-      });
+    this.taskService.tasks$
+      .map((tasks: Task[]) => tasks.slice().reverse())
+      .subscribe((tasks: Task[]) => (this.tasks = tasks));
   }
 
   onSave(type: string, ItemSliding?: ItemSliding, task?: Task): void {
@@ -31,55 +37,60 @@ export class HomePage {
     let options = {
       title: `${title} task`,
       itemSliding: ItemSliding,
-      type: type
+      type: type,
     };
     this.showAlert(options, task);
   }
 
   onDelete(task: Task): void {
-    this.alertCtrl.create({
-      title: `Do you want to delete '${task.title}' task?`,
-      buttons: [
-        {
-          text: 'Yes',
-          handler: () => {
-            let loading: Loading = this.showLoading(`Deleting ${task.title}...`);
+    this.alertCtrl
+      .create({
+        title: `Do you want to delete '${task.title}' task?`,
+        buttons: [
+          {
+            text: 'Yes',
+            handler: () => {
+              let loading: Loading = this.showLoading(
+                `Deleting ${task.title}...`,
+              );
 
-            this.taskService.delete(task.id)
-              .then((deleted: boolean) => {
-                this.tasks.splice(this.tasks.indexOf(task), 1);
+              this.taskService.delete(task).then(() => {
                 loading.dismiss();
               });
-          }
-        },
-        'No'
-      ]
-    }).present();
+            },
+          },
+          'No',
+        ],
+      })
+      .present();
   }
 
-  private showAlert(options: {itemSliding: ItemSliding, title: string, type: string}, task?: Task): void {
-
+  private showAlert(
+    options: { itemSliding: ItemSliding; title: string; type: string },
+    task?: Task,
+  ): void {
     let alertOptions: AlertOptions = {
       title: options.title,
       inputs: [
         {
           name: 'title',
-          placeholder: 'Task title'
-        }
+          placeholder: 'Task title',
+        },
       ],
       buttons: [
         {
           text: 'Cancel',
-          role: 'cancel'
+          role: 'cancel',
         },
         {
           text: 'Save',
-          handler: (data) => {
-
-            let loading: Loading = this.showLoading(`Saving ${data.title} task...`);
+          handler: data => {
+            let loading: Loading = this.showLoading(
+              `Saving ${data.title} task...`,
+            );
             let contextTask: Task;
 
-            switch(options.type) {
+            switch (options.type) {
               case 'create':
                 contextTask = new Task(data.title);
                 break;
@@ -89,16 +100,15 @@ export class HomePage {
                 break;
             }
 
-            this.taskService[options.type](contextTask)
-              .then((savedTask: Task) => {
-                if (options.type === 'create') this.tasks.unshift(savedTask);
+            this.taskService[options.type](contextTask).then(
+              (savedTask: Task) => {
                 loading.dismiss();
                 if (options.itemSliding) options.itemSliding.close();
-              });
-
-          }
-        }
-      ]
+              },
+            );
+          },
+        },
+      ],
     };
 
     if (options.type === 'update') {
@@ -106,15 +116,13 @@ export class HomePage {
     }
 
     this.alertCtrl.create(alertOptions).present();
-
   }
 
   private showLoading(message?: string): Loading {
     let loading: Loading = this.loadingCtrl.create({
-      content: message || 'Please wait...'
+      content: message || 'Please wait...',
     });
     loading.present();
     return loading;
   }
-
 }

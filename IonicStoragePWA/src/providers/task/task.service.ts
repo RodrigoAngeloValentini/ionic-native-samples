@@ -1,47 +1,40 @@
-import { Injectable } from '@angular/core';
+import { Injectable, Inject } from '@angular/core';
 import { Storage } from '@ionic/storage';
+import { Network } from '@ionic-native/network';
+import { Http } from '@angular/http';
+import { Observable } from 'rxjs';
 
 import { Task } from './../../models/task.model';
+import { TASK_API_URL } from '../../config/task-api-url.injectiontoken';
+import { OfflineService } from '../offline/offline.service';
 
 @Injectable()
-export class TaskService {
+export class TaskService extends OfflineService<Task> {
+  public tasks$: Observable<Task[]>;
 
   constructor(
-    public storage: Storage
-  ) {}
-
-  getAll(reverse?: boolean): Promise<Task[]> {
-
-    return this.storage.ready()
-      .then((localForage: LocalForage) => {
-
-        let tasks: Task[] = [];
-
-        return this.storage.forEach((task: Task, key: string, iterationNumber: number) => {
-          if (key.indexOf('tasks.') > -1) {
-            tasks.push(task);
-          }
-        }).then(() => (!reverse) ? tasks : tasks.reverse());
-
-      }).catch(err => console.log('Erro ao abrir o storage: ', err));
-
+    http: Http,
+    network: Network,
+    storage: Storage,
+    @Inject(TASK_API_URL) taskApiURL: string,
+  ) {
+    super(http, taskApiURL, network, 'tasks', storage);
+    this.tasks$ = this.listItems$;
   }
 
   get(id: number): Promise<Task> {
-    return this.storage.get(`tasks.${id}`); // tasks.46589321
+    return super.getFromStorage(id);
   }
 
   create(task: Task): Promise<Task> {
-    return this.storage.set(`tasks.${task.id}`, task);
+    return super.createInServer(task);
   }
 
   update(task: Task): Promise<Task> {
-    return this.create(task);
+    return super.updateInServer(task);
   }
 
-  delete(id: number): Promise<boolean> {
-    return this.storage.remove(`tasks.${id}`)
-      .then(() => true);
+  delete(task: Task): Promise<void> {
+    return super.deleteInServer(task);
   }
-
 }
